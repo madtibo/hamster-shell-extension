@@ -21,7 +21,6 @@ Copyright (c) 2016 - 2018 Eric Goller / projecthamster <elbenfreund@projecthamst
 */
 
 
-const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 const Meta = imports.gi.Meta;
@@ -82,7 +81,8 @@ const WindowsProxyIface = ['',
 
 let WindowsProxy = Gio.DBusProxy.makeProxyWrapper(WindowsProxyIface);
 
-
+// Toggle whether keybinding is registered
+var isKeyBindingActive = 0;
 
 
 /**
@@ -183,18 +183,23 @@ function Controller(extensionMeta) {
                 // Since Gnome 3.16, Shell.KeyBindingMode is replaced by Shell.ActionMode
                 Shell.KeyBindingMode ? Shell.KeyBindingMode.ALL : Shell.ActionMode.ALL,
                 Lang.bind(this.panelWidget, this.panelWidget.toggle)
-            );
+	    );
+	    this.isKeyBindingActive = 1;
         },
 
         disable: function() {
             this.shouldEnable = false;
-            Main.wm.removeKeybinding("show-hamster-dropdown");
+
+            if(this.isKeyBindingActive == 1) {
+		global.log('Removing keybinding.');
+		Main.wm.removeKeybinding("show-hamster-dropdown");
+	    } else {
+		global.log('(!!) Skipped removing keybinding as it was not enabled... Probably avoided a crash!');
+	    }
+	    this.isKeyBindingActive = 0;
 
             global.log('Shutting down hamster-shell-extension.');
             this._removeWidget(this.placement);
-            Main.panel.menuManager.removeMenu(this.panelWidget.menu);
-            GLib.source_remove(this.panelWidget.timeout);
-            this.panelWidget.actor.destroy();
             this.panelWidget.destroy();
             this.panelWidget = null;
             this.apiProxy = null;
